@@ -1,5 +1,5 @@
 node {
-    checkout scm
+    agent any
 
     stage("Build Image") {
         sh '''

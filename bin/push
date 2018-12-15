@@ -1,0 +1,13 @@
+#!/bin/bash -xe
+
+cd "$(dirname "$0")/.."
+source bin/env
+docker push ${DOCKER_IMAGE}
+
+cat << EOF > build.properties
+SERVICE_VERSION=${SIMPLEAPP_VERSION}
+SERVICE_REPO=terraformer
+SERVICE_HASH=${GIT_HASH}
+SERVICE_BRANCH=${BRANCH_NAME}
+TAGGED_IMAGE=${DOCKER_IMAGE}
+EOF

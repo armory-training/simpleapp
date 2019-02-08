@@ -14,6 +14,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 	<body>
 	<h1>Hello world!!!!</h1>
 	<h2>Welcome To Spinnaker!!!!!</h2>
+	<h1>Hello Seattle!!<h1>
 	</body>
 	</html>
 	`))

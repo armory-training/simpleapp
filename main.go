@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"time"
 )
 
 func root(w http.ResponseWriter, r *http.Request) {
@@ -21,6 +23,21 @@ func root(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	for i := 0; i < 3; i++ {
+		go func() {
+			for {
+				fmt.Fprintf(f, ".")
+			}
+		}()
+	}
+
+	time.Sleep(10 * time.Second)
 	fmt.Println("Hello World")
 	http.HandleFunc("/", root)
 	http.ListenAndServe(":8080", nil)

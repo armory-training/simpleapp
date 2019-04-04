@@ -1,0 +1,340 @@
+{
+  "application": "meetup",
+  "pipelines": [
+    {
+  "keepWaitingPipelines": false,
+  "lastModifiedBy": "anonymous",
+  "limitConcurrent": true,
+  "stages": [
+    {
+      "account": "k8s-meetup",
+      "app": "meetup",
+      "cloudProvider": "kubernetes",
+      "location": "brandon-meetup",
+      "manifestName": "deployment simpleapp-prod",
+      "mode": "static",
+      "name": "Find Production Baseline",
+      "refId": "1",
+      "requisiteStageRefIds": [
+        "10"
+      ],
+      "type": "findArtifactsFromResource"
+    },
+    {
+      "account": "k8s-meetup",
+      "cloudProvider": "kubernetes",
+      "manifestArtifactAccount": "embedded-artifact",
+      "manifests": [
+        {
+          "apiVersion": "apps/v1",
+          "kind": "Deployment",
+          "metadata": {
+            "name": "simpleapp-baseline",
+            "namespace": "brandon-meetup"
+          },
+          "spec": {
+            "replicas": 1,
+            "selector": {
+              "matchLabels": {
+                "app": "simpleapp"
+              }
+            },
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "simpleapp"
+                }
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "image": "${#stage('Find Production Baseline').context[\"artifacts\"][0][\"reference\"]}",
+                    "name": "simpleapp"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "moniker": {
+        "app": "meetup"
+      },
+      "name": "Deploy Baseline",
+      "refId": "2",
+      "relationships": {
+        "loadBalancers": [],
+        "securityGroups": []
+      },
+      "requisiteStageRefIds": [
+        "1"
+      ],
+      "source": "text",
+      "type": "deployManifest"
+    },
+    {
+      "account": "k8s-meetup",
+      "cloudProvider": "kubernetes",
+      "manifestArtifactAccount": "embedded-artifact",
+      "manifests": [
+        {
+          "apiVersion": "apps/v1",
+          "kind": "Deployment",
+          "metadata": {
+            "name": "simpleapp-canary",
+            "namespace": "brandon-meetup"
+          },
+          "spec": {
+            "replicas": 1,
+            "selector": {
+              "matchLabels": {
+                "app": "simpleapp"
+              }
+            },
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "simpleapp"
+                }
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "image": "${trigger.properties[\"TAGGED_IMAGE\"]}",
+                    "name": "simpleapp"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "moniker": {
+        "app": "meetup"
+      },
+      "name": "Deploy Canary",
+      "refId": "3",
+      "relationships": {
+        "loadBalancers": [],
+        "securityGroups": []
+      },
+      "requisiteStageRefIds": [
+        "1"
+      ],
+      "source": "text",
+      "type": "deployManifest"
+    },
+    {
+      "analysisType": "realTime",
+      "canaryConfig": {
+        "beginCanaryAnalysisAfterMins": "0",
+        "canaryAnalysisIntervalMins": "1",
+        "canaryConfigId": "fd569b0c-5b4b-4052-b2fd-50a09109d196",
+        "lifetimeDuration": "PT0H2M",
+        "metricsAccountName": "mydatadog",
+        "scopes": [
+          {
+            "controlScope": "kube_deployment:simpleapp-baseline",
+            "experimentScope": "kube_deployment:simpleapp-canary",
+            "extendedScopeParams": {},
+            "scopeName": "default",
+            "step": 60
+          }
+        ],
+        "scoreThresholds": {
+          "marginal": "50",
+          "pass": "75"
+        },
+        "storageAccountName": "mys3storage"
+      },
+      "completeOtherBranchesThenFail": false,
+      "continuePipeline": true,
+      "failPipeline": false,
+      "name": "Canary Analysis",
+      "refId": "4",
+      "requisiteStageRefIds": [
+        "3",
+        "2"
+      ],
+      "type": "kayentaCanary"
+    },
+    {
+      "account": "k8s-meetup",
+      "cloudProvider": "kubernetes",
+      "kinds": [],
+      "location": "brandon-meetup",
+      "manifestName": "deployment simpleapp-baseline",
+      "name": "Delete Baseline",
+      "options": {
+        "cascading": true
+      },
+      "refId": "5",
+      "requisiteStageRefIds": [
+        "4"
+      ],
+      "type": "deleteManifest"
+    },
+    {
+      "account": "k8s-meetup",
+      "cloudProvider": "kubernetes",
+      "kinds": [],
+      "location": "brandon-meetup",
+      "manifestName": "deployment simpleapp-canary",
+      "name": "Delete Canary",
+      "options": {
+        "cascading": true
+      },
+      "refId": "6",
+      "requisiteStageRefIds": [
+        "4"
+      ],
+      "type": "deleteManifest"
+    },
+    {
+      "account": "k8s-meetup",
+      "cloudProvider": "kubernetes",
+      "manifestArtifactAccount": "embedded-artifact",
+      "manifests": [
+        {
+          "apiVersion": "apps/v1",
+          "kind": "Deployment",
+          "metadata": {
+            "name": "simpleapp-prod",
+            "namespace": "brandon-meetup"
+          },
+          "spec": {
+            "replicas": 2,
+            "selector": {
+              "matchLabels": {
+                "app": "simpleapp"
+              }
+            },
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "simpleapp"
+                }
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "image": "${trigger.properties[\"TAGGED_IMAGE\"]}",
+                    "name": "simpleapp"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "moniker": {
+        "app": "meetup"
+      },
+      "name": "Deploy To Production!",
+      "refId": "7",
+      "relationships": {
+        "loadBalancers": [],
+        "securityGroups": []
+      },
+      "requisiteStageRefIds": [
+        "4"
+      ],
+      "source": "text",
+      "stageEnabled": {
+        "expression": "${ #stage('Canary Analysis')['status'].toString() == 'SUCCEEDED'}",
+        "type": "expression"
+      },
+      "type": "deployManifest"
+    },
+    {
+      "account": "kubernetes",
+      "cloudProvider": "kubernetes",
+      "manifestArtifactAccount": "embedded-artifact",
+      "manifests": [
+        {
+          "apiVersion": "apps/v1",
+          "kind": "Deployment",
+          "metadata": {
+            "name": "simpleapp-dev",
+            "namespace": "brandon-meetup"
+          },
+          "spec": {
+            "replicas": 1,
+            "selector": {
+              "matchLabels": {
+                "app": "simpleapp"
+              }
+            },
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "simpleapp"
+                }
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "image": "${trigger.properties[\"TAGGED_IMAGE\"]}",
+                    "name": "simpleapp"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "moniker": {
+        "app": "meetup"
+      },
+      "name": "Deploy To Dev",
+      "refId": "8",
+      "relationships": {
+        "loadBalancers": [],
+        "securityGroups": []
+      },
+      "requisiteStageRefIds": [],
+      "source": "text",
+      "type": "deployManifest"
+    },
+    {
+      "name": "Check Preconditions",
+      "preconditions": [
+        {
+          "context": {
+            "expression": "${ #stage('Canary Analysis')['status'].toString() == 'TERMINAL'}"
+          },
+          "failPipeline": false,
+          "type": "expression"
+        }
+      ],
+      "refId": "9",
+      "requisiteStageRefIds": [
+        "7",
+        "5",
+        "6"
+      ],
+      "type": "checkPreconditions"
+    },
+    {
+      "name": "Run Integration Tests",
+      "refId": "10",
+      "requisiteStageRefIds": [
+        "8"
+      ],
+      "type": "wait",
+      "waitTime": 5
+    }
+  ],
+  "triggers": [
+    {
+      "enabled": true,
+      "job": "armory-training/job/simpleapp/job/master",
+      "master": "jenkins-master",
+      "propertyFile": "build.properties",
+      "type": "jenkins"
+    }
+  ],
+  "updateTs": "1554323478000"
+}
+}
+]

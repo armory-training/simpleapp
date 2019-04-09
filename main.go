@@ -13,6 +13,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 	</head>
 	<body>
 	<h1>Hello world!!!!</h1>
+        <h3>Hello world!!!!</h3>
 	<h2>Welcome To Spinnaker!!!!!</h2>
 	<h1>Howdy Y'all!!<h1>
 	<h1>Pushing directly to master is awesome!</h1>
